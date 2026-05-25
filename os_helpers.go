@@ -17,20 +17,6 @@ var ensureDir = func(dir string) error {
 	return os.MkdirAll(dir, 0o755)
 }
 
-// writeFile writes data to path, creating or truncating the file.
-var writeFile = func(path string, data []byte) error {
-	return os.WriteFile(path, data, 0o644)
-}
-
-// removeFile deletes path. Returns nil if the file does not exist.
-var removeFile = func(path string) error {
-	err := os.Remove(path)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return err
-}
-
 // randRead fills b with cryptographically random bytes.
 var randRead = rand.Read
 
