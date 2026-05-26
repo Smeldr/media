@@ -3,7 +3,7 @@
 //
 // # Quick start
 //
-//	import forgemedia "smeldr.dev/forge-media"
+//	import forgemedia "smeldr.dev/media"
 //
 //	store := forgemedia.NewLocalMediaStore(app)
 //	srv   := forgemedia.New(app, store)
@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	forge "smeldr.dev/forge"
+	forge "smeldr.dev/core"
 )
 
 // ─── Media types ─────────────────────────────────────────────────────────────

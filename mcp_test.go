@@ -8,7 +8,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "smeldr.dev/forge"
+	forge "smeldr.dev/core"
 )
 
 // authorCtx returns a test Context with Author role.

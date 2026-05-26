@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	forge "smeldr.dev/forge"
+	forge "smeldr.dev/core"
 )
 
 // ─── Server ───────────────────────────────────────────────────────────────────

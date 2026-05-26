@@ -14,7 +14,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "smeldr.dev/forge"
+	forge "smeldr.dev/core"
 )
 
 // ─── test helpers ─────────────────────────────────────────────────────────────

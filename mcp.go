@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	forge "smeldr.dev/forge"
+	forge "smeldr.dev/core"
 )
 
 // ─── MCPModule interface implementation ───────────────────────────────────────
