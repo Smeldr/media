@@ -14,7 +14,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "forge-cms.dev/forge"
+	forge "smeldr.dev/forge"
 )
 
 // ─── test helpers ─────────────────────────────────────────────────────────────

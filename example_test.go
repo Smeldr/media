@@ -3,8 +3,8 @@ package forgemedia_test
 import (
 	"database/sql"
 
-	forge "forge-cms.dev/forge"
-	forgemedia "forge-cms.dev/forge-media"
+	forge "smeldr.dev/forge"
+	forgemedia "smeldr.dev/forge-media"
 )
 
 // ExampleRegister demonstrates the minimal forge-media wiring pattern.

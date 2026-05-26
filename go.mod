@@ -1,9 +1,9 @@
-module forge-cms.dev/forge-media
+module smeldr.dev/media
 
 go 1.26.2
 
 require (
-	forge-cms.dev/forge v1.19.0
+	smeldr.dev/core v0.0.0
 	modernc.org/sqlite v1.50.0
 )
 
