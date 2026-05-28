@@ -3,7 +3,7 @@ package forgemedia_test
 import (
 	"database/sql"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 	forgemedia "smeldr.dev/media"
 )
 
@@ -19,7 +19,7 @@ import (
 func ExampleRegister() {
 	var db *sql.DB // initialise from your application database setup
 
-	app := forge.New(forge.MustConfig(forge.Config{
+	app := smeldr.New(smeldr.MustConfig(smeldr.Config{
 		BaseURL: "https://example.com",
 		Secret:  []byte("change-this-secret-in-production!"),
 		DB:      db,

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // ─── MCPModule interface implementation ───────────────────────────────────────
@@ -14,11 +14,11 @@ import (
 // TypeName is "File"; Prefix is "/media". Both MCPRead and MCPWrite are
 // declared so that forge-mcp exposes media as resources and generates
 // tools for create and delete.
-func (s *Server) MCPMeta() forge.MCPMeta {
-	return forge.MCPMeta{
+func (s *Server) MCPMeta() smeldr.MCPMeta {
+	return smeldr.MCPMeta{
 		Prefix:     "/media",
 		TypeName:   "File",
-		Operations: []forge.MCPOperation{forge.MCPRead, forge.MCPWrite},
+		Operations: []smeldr.MCPOperation{smeldr.MCPRead, smeldr.MCPWrite},
 	}
 }
 
@@ -29,8 +29,8 @@ func (s *Server) MCPMeta() forge.MCPMeta {
 //   - data       (string, required) — base64-encoded file bytes
 //   - description (string)          — human-readable description; required by the
 //     server for image files (WCAG guidance)
-func (s *Server) MCPSchema() []forge.MCPField {
-	return []forge.MCPField{
+func (s *Server) MCPSchema() []smeldr.MCPField {
+	return []smeldr.MCPField{
 		{
 			Name:        "Filename",
 			JSONName:    "filename",
@@ -59,7 +59,7 @@ func (s *Server) MCPSchema() []forge.MCPField {
 
 // MCPList returns all media records as []any. The status filter is ignored —
 // media files have no lifecycle and are always returned regardless of status.
-func (s *Server) MCPList(_ forge.Context, _ ...forge.Status) ([]any, error) {
+func (s *Server) MCPList(_ smeldr.Context, _ ...smeldr.Status) ([]any, error) {
 	records, err := listMedia(s.db, "")
 	if err != nil {
 		return nil, err
@@ -73,8 +73,8 @@ func (s *Server) MCPList(_ forge.Context, _ ...forge.Status) ([]any, error) {
 }
 
 // MCPGet returns the MediaRecord for the given slug (= ID).
-// Returns [forge.ErrNotFound] when no record exists with that ID.
-func (s *Server) MCPGet(_ forge.Context, slug string) (any, error) {
+// Returns [smeldr.ErrNotFound] when no record exists with that ID.
+func (s *Server) MCPGet(_ smeldr.Context, slug string) (any, error) {
 	r, err := getMediaByID(s.db, slug)
 	if err != nil {
 		return nil, err
@@ -89,24 +89,24 @@ func (s *Server) MCPGet(_ forge.Context, slug string) (any, error) {
 //
 // Optional:
 //   - "description" (string) — required when the file is an image type
-func (s *Server) MCPCreate(_ forge.Context, fields map[string]any) (any, error) {
+func (s *Server) MCPCreate(_ smeldr.Context, fields map[string]any) (any, error) {
 	// Extract filename.
 	origFilename, _ := fields["filename"].(string)
 	if origFilename == "" {
-		return nil, forge.Err("filename", "required")
+		return nil, smeldr.Err("filename", "required")
 	}
 
 	// Extract and decode base64 data.
 	dataB64, _ := fields["data"].(string)
 	if dataB64 == "" {
-		return nil, forge.Err("data", "required")
+		return nil, smeldr.Err("data", "required")
 	}
 	data, err := base64.StdEncoding.DecodeString(dataB64)
 	if err != nil {
 		// Try raw URL encoding (no padding).
 		data, err = base64.RawURLEncoding.DecodeString(dataB64)
 		if err != nil {
-			return nil, forge.Err("data", "must be base64-encoded file bytes")
+			return nil, smeldr.Err("data", "must be base64-encoded file bytes")
 		}
 	}
 
@@ -120,7 +120,7 @@ func (s *Server) MCPCreate(_ forge.Context, fields map[string]any) (any, error) 
 
 	mt := detectMediaType(mime)
 	if mt == MediaTypeImage && description == "" {
-		return nil, forge.Err("description", "required for image uploads")
+		return nil, smeldr.Err("description", "required for image uploads")
 	}
 
 	filename, err := generateFilename(origFilename)
@@ -155,28 +155,28 @@ func (s *Server) MCPCreate(_ forge.Context, fields map[string]any) (any, error) 
 
 // MCPUpdate always returns an error — media files cannot be updated in place.
 // The caller should delete the existing record and re-upload.
-func (s *Server) MCPUpdate(_ forge.Context, _ string, _ map[string]any) (any, error) {
-	return nil, forge.ErrBadRequest
+func (s *Server) MCPUpdate(_ smeldr.Context, _ string, _ map[string]any) (any, error) {
+	return nil, smeldr.ErrBadRequest
 }
 
 // MCPPublish always returns an error — media files have no lifecycle.
-func (s *Server) MCPPublish(_ forge.Context, _ string) error {
-	return forge.ErrBadRequest
+func (s *Server) MCPPublish(_ smeldr.Context, _ string) error {
+	return smeldr.ErrBadRequest
 }
 
 // MCPSchedule always returns an error — media files have no lifecycle.
-func (s *Server) MCPSchedule(_ forge.Context, _ string, _ time.Time) error {
-	return forge.ErrBadRequest
+func (s *Server) MCPSchedule(_ smeldr.Context, _ string, _ time.Time) error {
+	return smeldr.ErrBadRequest
 }
 
 // MCPArchive always returns an error — media files have no lifecycle.
-func (s *Server) MCPArchive(_ forge.Context, _ string) error {
-	return forge.ErrBadRequest
+func (s *Server) MCPArchive(_ smeldr.Context, _ string) error {
+	return smeldr.ErrBadRequest
 }
 
 // MCPDelete permanently deletes the media record and its stored file.
-// Returns [forge.ErrNotFound] when no record exists with the given slug (= ID).
-func (s *Server) MCPDelete(_ forge.Context, slug string) error {
+// Returns [smeldr.ErrNotFound] when no record exists with the given slug (= ID).
+func (s *Server) MCPDelete(_ smeldr.Context, slug string) error {
 	r, err := getMediaByID(s.db, slug)
 	if err != nil {
 		return err

@@ -8,26 +8,26 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // authorCtx returns a test Context with Author role.
-func authorCtx(t *testing.T) forge.Context {
+func authorCtx(t *testing.T) smeldr.Context {
 	t.Helper()
-	return forge.NewTestContext(forge.User{
+	return smeldr.NewTestContext(smeldr.User{
 		ID:    "a1",
 		Name:  "Author",
-		Roles: []forge.Role{forge.Author},
+		Roles: []smeldr.Role{smeldr.Author},
 	})
 }
 
 // editorCtx returns a test Context with Editor role.
-func editorCtx(t *testing.T) forge.Context {
+func editorCtx(t *testing.T) smeldr.Context {
 	t.Helper()
-	return forge.NewTestContext(forge.User{
+	return smeldr.NewTestContext(smeldr.User{
 		ID:    "e1",
 		Name:  "Editor",
-		Roles: []forge.Role{forge.Editor},
+		Roles: []smeldr.Role{smeldr.Editor},
 	})
 }
 
@@ -43,7 +43,7 @@ func newMCPServer(t *testing.T) *Server {
 	if err := CreateMediaTable(db); err != nil {
 		t.Fatalf("CreateMediaTable: %v", err)
 	}
-	app := forge.New(forge.MustConfig(forge.Config{
+	app := smeldr.New(smeldr.MustConfig(smeldr.Config{
 		BaseURL: "https://example.com",
 		Secret:  []byte("test-secret-must-be-32-bytes!!!!!"),
 		DB:      db,
@@ -169,7 +169,7 @@ func TestMCPList_statusIgnored(t *testing.T) {
 	}
 
 	// Status filter is ignored for media — all records returned regardless.
-	items, err := s.MCPList(editorCtx(t), forge.Draft)
+	items, err := s.MCPList(editorCtx(t), smeldr.Draft)
 	if err != nil {
 		t.Fatalf("MCPList: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestMCPGet_found(t *testing.T) {
 func TestMCPGet_notFound(t *testing.T) {
 	s := newMCPServer(t)
 	_, err := s.MCPGet(editorCtx(t), "missing")
-	if err != forge.ErrNotFound {
+	if err != smeldr.ErrNotFound {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }
@@ -224,14 +224,14 @@ func TestMCPDelete_success(t *testing.T) {
 		t.Fatalf("MCPDelete: %v", err)
 	}
 
-	if _, err := getMediaByID(s.db, "d1"); err != forge.ErrNotFound {
+	if _, err := getMediaByID(s.db, "d1"); err != smeldr.ErrNotFound {
 		t.Errorf("record should be gone, got: %v", err)
 	}
 }
 
 func TestMCPDelete_notFound(t *testing.T) {
 	s := newMCPServer(t)
-	if err := s.MCPDelete(editorCtx(t), "missing"); err != forge.ErrNotFound {
+	if err := s.MCPDelete(editorCtx(t), "missing"); err != smeldr.ErrNotFound {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }
@@ -278,5 +278,5 @@ func TestGetSlug(t *testing.T) {
 
 // ─── compile-time interface check ─────────────────────────────────────────────
 
-var _ forge.MCPModule = (*Server)(nil)
+var _ smeldr.MCPModule = (*Server)(nil)
 var _ = (*sql.DB)(nil)

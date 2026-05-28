@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // ─── Server ───────────────────────────────────────────────────────────────────
@@ -17,9 +17,9 @@ import (
 // Server handles media upload, serving, listing, and deletion for a Forge
 // application. Create it with [New] and register its routes with [Register].
 type Server struct {
-	app     *forge.App
+	app     *smeldr.App
 	store   MediaStore
-	db      forge.DB
+	db      smeldr.DB
 	maxSize int64
 	dir     string
 }
@@ -27,7 +27,7 @@ type Server struct {
 // New returns a Server backed by store. It panics if the application has no
 // DB configured (DB is required to persist media records) or if the media
 // table cannot be created.
-func New(app *forge.App, store MediaStore) *Server {
+func New(app *smeldr.App, store MediaStore) *Server {
 	cfg := app.Config()
 	if cfg.DB == nil {
 		panic("forgemedia.New: app has no DB configured — set Config.DB before calling New")
@@ -59,7 +59,7 @@ func New(app *forge.App, store MediaStore) *Server {
 //	GET    /media/{filename} — serve (public)
 //	GET    /media           — list (Editor+)
 //	DELETE /media/{id}      — delete (Editor+)
-func Register(app *forge.App, store MediaStore) *Server {
+func Register(app *smeldr.App, store MediaStore) *Server {
 	s := New(app, store)
 	mux := s.HTTPHandler()
 	app.Handle("POST /media", mux)
@@ -70,7 +70,7 @@ func Register(app *forge.App, store MediaStore) *Server {
 }
 
 // HTTPHandler returns an http.Handler that serves all four media routes.
-// Mount it with [Register] or attach it manually via [forge.App.Handle].
+// Mount it with [Register] or attach it manually via [smeldr.App.Handle].
 func (s *Server) HTTPHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /media", s.handleUpload)
@@ -109,14 +109,14 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(authHeader, "UploadToken "):
 		token := strings.TrimPrefix(authHeader, "UploadToken ")
 		if err := s.app.ValidateUploadToken(token); err != nil {
-			forge.WriteError(w, r, forge.ErrUnauth)
+			smeldr.WriteError(w, r, smeldr.ErrUnauth)
 			return
 		}
 		uploadTokenAuth = true
 	default:
-		user, ok := forge.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
-		if !ok || !user.HasRole(forge.Author) {
-			forge.WriteError(w, r, forge.ErrUnauth)
+		user, ok := smeldr.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
+		if !ok || !user.HasRole(smeldr.Author) {
+			smeldr.WriteError(w, r, smeldr.ErrUnauth)
 			return
 		}
 	}
@@ -125,24 +125,24 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, s.maxSize)
 	if err := r.ParseMultipartForm(s.maxSize); err != nil {
 		if strings.Contains(err.Error(), "request body too large") || strings.Contains(err.Error(), "http: request body too large") {
-			forge.WriteError(w, r, forge.ErrRequestTooLarge)
+			smeldr.WriteError(w, r, smeldr.ErrRequestTooLarge)
 			return
 		}
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
 	// Read file field.
 	fh, header, err := r.FormFile("file")
 	if err != nil {
-		forge.WriteError(w, r, forge.Err("file", "required"))
+		smeldr.WriteError(w, r, smeldr.Err("file", "required"))
 		return
 	}
 	defer fh.Close()
 
 	data, err := io.ReadAll(fh)
 	if err != nil {
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	mimeType, err := detectMIME(data, ext)
 	if err != nil {
-		forge.WriteError(w, r, err)
+		smeldr.WriteError(w, r, err)
 		return
 	}
 
@@ -161,27 +161,27 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	// UploadToken uploads are restricted to image MIME types only.
 	// Bearer-token (admin) uploads are not restricted.
 	if uploadTokenAuth && !uploadAllowedMIMEs[mimeType] {
-		forge.WriteError(w, r, forge.Err("file", "upload token only accepts image/jpeg, image/png, image/webp, image/gif, image/avif"))
+		smeldr.WriteError(w, r, smeldr.Err("file", "upload token only accepts image/jpeg, image/png, image/webp, image/gif, image/avif"))
 		return
 	}
 
 	// WCAG 1.1.1 — alt text required for images.
 	if mt == MediaTypeImage && description == "" {
-		forge.WriteError(w, r, forge.Err("description", "required for image uploads"))
+		smeldr.WriteError(w, r, smeldr.Err("description", "required for image uploads"))
 		return
 	}
 
 	// Generate a unique storage filename.
 	filename, err := generateFilename(header.Filename)
 	if err != nil {
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
 	// Store the file.
 	url, err := s.store.Store(filename, data)
 	if err != nil {
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if err := insertMedia(s.db, rec); err != nil {
 		// Best-effort cleanup — ignore delete error.
 		_ = s.store.Delete(filename)
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
@@ -228,16 +228,16 @@ func (s *Server) handleServe(w http.ResponseWriter, r *http.Request) {
 // ?type=image|video|audio|document|other filtering. Requires Editor role.
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	cfg := s.app.Config()
-	user, ok := forge.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
-	if !ok || !user.HasRole(forge.Editor) {
-		forge.WriteError(w, r, forge.ErrUnauth)
+	user, ok := smeldr.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
+	if !ok || !user.HasRole(smeldr.Editor) {
+		smeldr.WriteError(w, r, smeldr.ErrUnauth)
 		return
 	}
 
 	filter := MediaType(r.URL.Query().Get("type"))
 	records, err := listMedia(s.db, filter)
 	if err != nil {
-		forge.WriteError(w, r, forge.ErrBadRequest)
+		smeldr.WriteError(w, r, smeldr.ErrBadRequest)
 		return
 	}
 
@@ -257,9 +257,9 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 // Requires Editor role. Returns 204 No Content on success.
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	cfg := s.app.Config()
-	user, ok := forge.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
-	if !ok || !user.HasRole(forge.Editor) {
-		forge.WriteError(w, r, forge.ErrUnauth)
+	user, ok := smeldr.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
+	if !ok || !user.HasRole(smeldr.Editor) {
+		smeldr.WriteError(w, r, smeldr.ErrUnauth)
 		return
 	}
 
@@ -268,12 +268,12 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	// Fetch the record first so we know the filename to delete.
 	rec, err := getMediaByID(s.db, id)
 	if err != nil {
-		forge.WriteError(w, r, err)
+		smeldr.WriteError(w, r, err)
 		return
 	}
 
 	if err := deleteMediaRecord(s.db, id); err != nil {
-		forge.WriteError(w, r, err)
+		smeldr.WriteError(w, r, err)
 		return
 	}
 

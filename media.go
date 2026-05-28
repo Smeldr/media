@@ -10,7 +10,7 @@
 //	srv.Register(app)
 //
 // Uploaded files are validated by magic-byte MIME detection, stored in the
-// directory configured by [forge.Config.MediaPath] (default ./media), and
+// directory configured by [smeldr.Config.MediaPath] (default ./media), and
 // served at GET /media/{filename}. All write operations require at least the
 // Author role.
 package forgemedia
@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // ─── Media types ─────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ type LocalMediaStore struct {
 // It reads MediaPath from app.Config() (default "./media") and BaseURL for URL
 // construction. The upload directory is not created here; it is created lazily
 // on first upload.
-func NewLocalMediaStore(app *forge.App) *LocalMediaStore {
+func NewLocalMediaStore(app *smeldr.App) *LocalMediaStore {
 	cfg := app.Config()
 	dir := cfg.MediaPath
 	if dir == "" {
@@ -272,7 +272,7 @@ func detectMIME(data []byte, ext string) (string, error) {
 		if !ok2 {
 			actualLabel = actual
 		}
-		return "", forge.Err("file",
+		return "", smeldr.Err("file",
 			fmt.Sprintf("expected %s (from %s extension), got %s content", extLabel, ext, actualLabel))
 	}
 
@@ -373,7 +373,7 @@ func detectMediaType(mime string) MediaType {
 
 // CreateMediaTable creates the forge_media table if it does not already exist.
 // Call this once at application startup.
-func CreateMediaTable(db forge.DB) error {
+func CreateMediaTable(db smeldr.DB) error {
 	_, err := db.ExecContext(context.Background(), `
 		CREATE TABLE IF NOT EXISTS forge_media (
 			id                TEXT PRIMARY KEY,
@@ -392,7 +392,7 @@ func CreateMediaTable(db forge.DB) error {
 }
 
 // insertMedia inserts a MediaRecord into the forge_media table.
-func insertMedia(db forge.DB, r MediaRecord) error {
+func insertMedia(db smeldr.DB, r MediaRecord) error {
 	_, err := db.ExecContext(context.Background(),
 		`INSERT INTO forge_media
 			(id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at)
@@ -408,7 +408,7 @@ func insertMedia(db forge.DB, r MediaRecord) error {
 
 // listMedia returns all media records, optionally filtered by MediaType.
 // Pass an empty string to return all records.
-func listMedia(db forge.DB, filter MediaType) ([]MediaRecord, error) {
+func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 	var (
 		sqlrows *sql.Rows
 		err     error
@@ -442,8 +442,8 @@ func listMedia(db forge.DB, filter MediaType) ([]MediaRecord, error) {
 }
 
 // getMediaByID returns a single MediaRecord by its ID.
-// Returns forge.ErrNotFound when no row exists.
-func getMediaByID(db forge.DB, id string) (MediaRecord, error) {
+// Returns smeldr.ErrNotFound when no row exists.
+func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 	row := db.QueryRowContext(context.Background(), `
 		SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
 		FROM forge_media WHERE id = ?`, id)
@@ -454,7 +454,7 @@ func getMediaByID(db forge.DB, id string) (MediaRecord, error) {
 		&r.MIMEType, &r.Description, &r.SizeBytes, &r.UploadedAt)
 	if err != nil {
 		if isNoRows(err) {
-			return MediaRecord{}, forge.ErrNotFound
+			return MediaRecord{}, smeldr.ErrNotFound
 		}
 		return MediaRecord{}, fmt.Errorf("forgemedia: get media by id: %w", err)
 	}
@@ -463,8 +463,8 @@ func getMediaByID(db forge.DB, id string) (MediaRecord, error) {
 }
 
 // deleteMediaRecord removes a forge_media row by ID.
-// Returns forge.ErrNotFound when no row exists.
-func deleteMediaRecord(db forge.DB, id string) error {
+// Returns smeldr.ErrNotFound when no row exists.
+func deleteMediaRecord(db smeldr.DB, id string) error {
 	res, err := db.ExecContext(context.Background(),
 		`DELETE FROM forge_media WHERE id = ?`, id)
 	if err != nil {
@@ -475,7 +475,7 @@ func deleteMediaRecord(db forge.DB, id string) error {
 		return fmt.Errorf("forgemedia: rows affected: %w", err)
 	}
 	if n == 0 {
-		return forge.ErrNotFound
+		return smeldr.ErrNotFound
 	}
 	return nil
 }

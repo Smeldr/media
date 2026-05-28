@@ -11,13 +11,13 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 // openTestDB returns an in-memory SQLite database for tests.
-func openTestDB(t *testing.T) forge.DB {
+func openTestDB(t *testing.T) smeldr.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
@@ -27,10 +27,10 @@ func openTestDB(t *testing.T) forge.DB {
 	return db
 }
 
-// newTestApp returns a minimal *forge.App for testing store construction.
-func newTestApp(t *testing.T, mediaPath, baseURL string) *forge.App {
+// newTestApp returns a minimal *smeldr.App for testing store construction.
+func newTestApp(t *testing.T, mediaPath, baseURL string) *smeldr.App {
 	t.Helper()
-	return forge.New(forge.MustConfig(forge.Config{
+	return smeldr.New(smeldr.MustConfig(smeldr.Config{
 		BaseURL:   baseURL,
 		Secret:    []byte("test-secret-32-bytes-minimum!!"),
 		MediaPath: mediaPath,
@@ -354,7 +354,7 @@ func TestGetMediaByID(t *testing.T) {
 	}
 
 	_, err = getMediaByID(db, "missing")
-	if err != forge.ErrNotFound {
+	if err != smeldr.ErrNotFound {
 		t.Errorf("missing ID: want ErrNotFound, got %v", err)
 	}
 }
@@ -378,14 +378,14 @@ func TestDeleteMediaRecord(t *testing.T) {
 		t.Fatalf("deleteMediaRecord: %v", err)
 	}
 
-	if err := deleteMediaRecord(db, "del1"); err != forge.ErrNotFound {
+	if err := deleteMediaRecord(db, "del1"); err != smeldr.ErrNotFound {
 		t.Errorf("second delete: want ErrNotFound, got %v", err)
 	}
 }
 
-// ─── compile-time: confirm forge.DB is satisfied by *sql.DB ─────────────────
+// ─── compile-time: confirm smeldr.DB is satisfied by *sql.DB ─────────────────
 
-var _ forge.DB = (*sql.DB)(nil)
+var _ smeldr.DB = (*sql.DB)(nil)
 
 // ─── queryContext nil-context guard ──────────────────────────────────────────
 // Verify that context.Background() is safe in this context (no-op test).

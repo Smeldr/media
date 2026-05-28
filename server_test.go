@@ -14,13 +14,13 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	forge "smeldr.dev/core"
+	"smeldr.dev/core"
 )
 
 // ─── test helpers ─────────────────────────────────────────────────────────────
 
 // openServerTestDB returns an in-memory SQLite DB and creates the media table.
-func openServerTestDB(t *testing.T) forge.DB {
+func openServerTestDB(t *testing.T) smeldr.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
@@ -36,12 +36,12 @@ func openServerTestDB(t *testing.T) forge.DB {
 var testSecret = []byte("test-secret-must-be-32-bytes!!!!!")
 
 // newTestServer returns a Server wired to an in-memory DB and a temp-dir store.
-func newTestServer(t *testing.T) (*Server, *forge.App) {
+func newTestServer(t *testing.T) (*Server, *smeldr.App) {
 	t.Helper()
 	dir := t.TempDir()
 	db := openServerTestDB(t)
 
-	app := forge.New(forge.MustConfig(forge.Config{
+	app := smeldr.New(smeldr.MustConfig(smeldr.Config{
 		BaseURL: "https://example.com",
 		Secret:  testSecret,
 		DB:      db,
@@ -61,7 +61,7 @@ func newTestServer(t *testing.T) (*Server, *forge.App) {
 // authorToken returns a signed bearer token with Author role.
 func authorToken(t *testing.T) string {
 	t.Helper()
-	tok, err := forge.SignToken(forge.User{ID: "u1", Name: "Author", Roles: []forge.Role{forge.Author}}, string(testSecret), 0)
+	tok, err := smeldr.SignToken(smeldr.User{ID: "u1", Name: "Author", Roles: []smeldr.Role{smeldr.Author}}, string(testSecret), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func authorToken(t *testing.T) string {
 // editorToken returns a signed bearer token with Editor role.
 func editorToken(t *testing.T) string {
 	t.Helper()
-	tok, err := forge.SignToken(forge.User{ID: "u2", Name: "Editor", Roles: []forge.Role{forge.Editor}}, string(testSecret), 0)
+	tok, err := smeldr.SignToken(smeldr.User{ID: "u2", Name: "Editor", Roles: []smeldr.Role{smeldr.Editor}}, string(testSecret), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ func TestHandleDelete_success(t *testing.T) {
 	}
 
 	// Record should be gone.
-	if _, err := getMediaByID(s.db, "del1"); err != forge.ErrNotFound {
+	if _, err := getMediaByID(s.db, "del1"); err != smeldr.ErrNotFound {
 		t.Errorf("record should be deleted, got: %v", err)
 	}
 }
@@ -390,7 +390,7 @@ func TestHandleDelete_requiresEditorRole(t *testing.T) {
 
 // ─── compile-time interface check ─────────────────────────────────────────────
 
-var _ forge.DB = (*sql.DB)(nil)
+var _ smeldr.DB = (*sql.DB)(nil)
 
 // ─── UploadToken tests ────────────────────────────────────────────────────────
 
@@ -439,7 +439,7 @@ func TestHandleUpload_uploadToken_expired(t *testing.T) {
 
 	// Create an app with a negative TTL so GenerateUploadToken returns an
 	// already-expired token.
-	appExpired := forge.New(forge.MustConfig(forge.Config{
+	appExpired := smeldr.New(smeldr.MustConfig(smeldr.Config{
 		BaseURL:                "https://example.com",
 		Secret:                 testSecret,
 		DB:                     openServerTestDB(t),
