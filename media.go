@@ -89,7 +89,7 @@ type MediaStore interface {
 // ─── LocalMediaStore ─────────────────────────────────────────────────────────
 
 // LocalMediaStore stores uploaded files in a local directory and serves them
-// via the Forge HTTP handler. It implements [MediaStore].
+// via the Smeldr HTTP handler. It implements [MediaStore].
 type LocalMediaStore struct {
 	dir     string
 	baseURL string

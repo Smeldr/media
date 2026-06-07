@@ -14,7 +14,7 @@ import (
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
-// Server handles media upload, serving, listing, and deletion for a Forge
+// Server handles media upload, serving, listing, and deletion for a Smeldr
 // application. Create it with [New] and register its routes with [Register].
 type Server struct {
 	app     *smeldr.App

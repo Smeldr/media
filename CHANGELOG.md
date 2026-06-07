@@ -7,6 +7,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.1] — 2026-06-07
+
+### Changed
+
+- Brand-prose sweep (T101, A135): two godoc comments "Forge" → "Smeldr" in media.go
+  and server.go. No exported-symbol or behaviour change.
+
+---
+
 ## [1.4.0] — 2026-06-06
 
 ### Changed (breaking)
