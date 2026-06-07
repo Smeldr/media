@@ -1,4 +1,4 @@
-package forgemedia
+package media
 
 import (
 	"encoding/base64"
@@ -30,10 +30,10 @@ type Server struct {
 func New(app *smeldr.App, store MediaStore) *Server {
 	cfg := app.Config()
 	if cfg.DB == nil {
-		panic("forgemedia.New: app has no DB configured — set Config.DB before calling New")
+		panic("media.New: app has no DB configured — set Config.DB before calling New")
 	}
 	if err := CreateMediaTable(cfg.DB); err != nil {
-		panic(fmt.Sprintf("forgemedia.New: create media table: %v", err))
+		panic(fmt.Sprintf("media.New: create media table: %v", err))
 	}
 	maxSize := cfg.MediaMaxSize
 	if maxSize == 0 {
@@ -289,7 +289,7 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 func newID() string {
 	b := make([]byte, 16)
 	if _, err := randRead(b); err != nil {
-		panic(fmt.Sprintf("forgemedia: newID: %v", err))
+		panic(fmt.Sprintf("media: newID: %v", err))
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
 }

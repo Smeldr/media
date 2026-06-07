@@ -1,4 +1,4 @@
-package forgemedia
+package media
 
 import (
 	"encoding/base64"
@@ -12,7 +12,7 @@ import (
 
 // MCPMeta returns the MCP registration metadata for the media Server.
 // TypeName is "File"; Prefix is "/media". Both MCPRead and MCPWrite are
-// declared so that forge-mcp exposes media as resources and generates
+// declared so that mcp exposes media as resources and generates
 // tools for create and delete.
 func (s *Server) MCPMeta() smeldr.MCPMeta {
 	return smeldr.MCPMeta{
@@ -190,5 +190,5 @@ func (s *Server) MCPDelete(_ smeldr.Context, slug string) error {
 }
 
 // GetSlug returns the ID of the MediaRecord, satisfying the slugger interface
-// used by forge-mcp's allResources to build resource URIs.
+// used by mcp's allResources to build resource URIs.
 func (r MediaRecord) GetSlug() string { return r.ID }

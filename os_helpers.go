@@ -1,4 +1,4 @@
-package forgemedia
+package media
 
 // os_helpers.go contains thin wrappers around os and encoding functions.
 // These are package-level variables so tests can substitute stubs without

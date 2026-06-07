@@ -1,9 +1,26 @@
-# Changelog — forge-media
+# Changelog — smeldr.dev/media
 
-All notable changes to forge-media are documented here.
+All notable changes to smeldr.dev/media are documented here.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.4.0] — 2026-06-06
+
+### Changed (breaking)
+
+- Package renamed `forgemedia` → `media` (T100 Step 3). Update imports from
+  `forgemedia.X` to `media.X` (or drop the alias: `import "smeldr.dev/media"`).
+  Error-string prefixes `forgemedia:` → `media:`. No exported symbols changed —
+  only the package qualifier.
+- Updated stale `forge-mcp` doc cross-references to `mcp` (renamed in mcp v1.17.0).
+
+### Preserved
+
+- `forge_media` DB table name is unchanged — renaming it is a separate DB
+  migration, not part of this rename.
 
 ---
 

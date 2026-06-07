@@ -1,19 +1,19 @@
-// Package forgemedia provides media upload, storage, and serving for Forge
+// Package media provides media upload, storage, and serving for Smeldr
 // applications. It is an optional submodule with zero additional dependencies.
 //
 // # Quick start
 //
-//	import forgemedia "smeldr.dev/media"
+//	import "smeldr.dev/media"
 //
-//	store := forgemedia.NewLocalMediaStore(app)
-//	srv   := forgemedia.New(app, store)
+//	store := media.NewLocalMediaStore(app)
+//	srv   := media.New(app, store)
 //	srv.Register(app)
 //
 // Uploaded files are validated by magic-byte MIME detection, stored in the
 // directory configured by [smeldr.Config.MediaPath] (default ./media), and
 // served at GET /media/{filename}. All write operations require at least the
 // Author role.
-package forgemedia
+package media
 
 import (
 	"context"
@@ -113,20 +113,20 @@ func NewLocalMediaStore(app *smeldr.App) *LocalMediaStore {
 // Uses os.Root to sandbox all writes inside s.dir, preventing path traversal.
 func (s *LocalMediaStore) Store(filename string, data []byte) (string, error) {
 	if err := ensureDir(s.dir); err != nil {
-		return "", fmt.Errorf("forgemedia: create upload directory: %w", err)
+		return "", fmt.Errorf("media: create upload directory: %w", err)
 	}
 	root, err := os.OpenRoot(s.dir)
 	if err != nil {
-		return "", fmt.Errorf("forgemedia: open root: %w", err)
+		return "", fmt.Errorf("media: open root: %w", err)
 	}
 	defer root.Close()
 	f, err := root.Create(filename)
 	if err != nil {
-		return "", fmt.Errorf("forgemedia: write file: %w", err)
+		return "", fmt.Errorf("media: write file: %w", err)
 	}
 	defer f.Close()
 	if _, err := f.Write(data); err != nil {
-		return "", fmt.Errorf("forgemedia: write file: %w", err)
+		return "", fmt.Errorf("media: write file: %w", err)
 	}
 	return s.URL(filename), nil
 }
@@ -168,7 +168,7 @@ func (s *LocalMediaStore) URL(filename string) string {
 func generateFilename(original string) (string, error) {
 	b := make([]byte, 16)
 	if _, err := randRead(b); err != nil {
-		return "", fmt.Errorf("forgemedia: generate random prefix: %w", err)
+		return "", fmt.Errorf("media: generate random prefix: %w", err)
 	}
 	prefix := hex.EncodeToString(b)
 	sanitized := sanitizeFilename(original)
@@ -257,7 +257,7 @@ func detectMIME(data []byte, ext string) (string, error) {
 	ext = strings.ToLower(ext)
 	expected, ok := extToMIME[ext]
 	if !ok {
-		return "", fmt.Errorf("forgemedia: unsupported file extension %q", ext)
+		return "", fmt.Errorf("media: unsupported file extension %q", ext)
 	}
 
 	actual := sniffMIME(data)
@@ -386,7 +386,7 @@ func CreateMediaTable(db smeldr.DB) error {
 			uploaded_at       DATETIME NOT NULL
 		)`)
 	if err != nil {
-		return fmt.Errorf("forgemedia: create table: %w", err)
+		return fmt.Errorf("media: create table: %w", err)
 	}
 	return nil
 }
@@ -401,7 +401,7 @@ func insertMedia(db smeldr.DB, r MediaRecord) error {
 		r.MIMEType, r.Description, r.SizeBytes, r.UploadedAt.UTC(),
 	)
 	if err != nil {
-		return fmt.Errorf("forgemedia: insert media: %w", err)
+		return fmt.Errorf("media: insert media: %w", err)
 	}
 	return nil
 }
@@ -423,7 +423,7 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 			FROM forge_media WHERE media_type = ? ORDER BY uploaded_at DESC`, string(filter))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("forgemedia: list media: %w", err)
+		return nil, fmt.Errorf("media: list media: %w", err)
 	}
 	defer sqlrows.Close()
 
@@ -433,7 +433,7 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 		var mt string
 		if err := sqlrows.Scan(&r.ID, &r.Filename, &r.OriginalFilename, &mt,
 			&r.MIMEType, &r.Description, &r.SizeBytes, &r.UploadedAt); err != nil {
-			return nil, fmt.Errorf("forgemedia: scan media row: %w", err)
+			return nil, fmt.Errorf("media: scan media row: %w", err)
 		}
 		r.MediaType = MediaType(mt)
 		records = append(records, r)
@@ -456,7 +456,7 @@ func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 		if isNoRows(err) {
 			return MediaRecord{}, smeldr.ErrNotFound
 		}
-		return MediaRecord{}, fmt.Errorf("forgemedia: get media by id: %w", err)
+		return MediaRecord{}, fmt.Errorf("media: get media by id: %w", err)
 	}
 	r.MediaType = MediaType(mt)
 	return r, nil
@@ -468,11 +468,11 @@ func deleteMediaRecord(db smeldr.DB, id string) error {
 	res, err := db.ExecContext(context.Background(),
 		`DELETE FROM forge_media WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("forgemedia: delete media record: %w", err)
+		return fmt.Errorf("media: delete media record: %w", err)
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("forgemedia: rows affected: %w", err)
+		return fmt.Errorf("media: rows affected: %w", err)
 	}
 	if n == 0 {
 		return smeldr.ErrNotFound

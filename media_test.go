@@ -1,4 +1,4 @@
-package forgemedia
+package media
 
 import (
 	"context"
@@ -251,13 +251,13 @@ func TestLocalMediaStore_store_pathTraversal(t *testing.T) {
 
 func TestLocalMediaStore_delete_pathTraversal(t *testing.T) {
 	dir := t.TempDir()
-	outside := filepath.Join(filepath.Dir(dir), "canary-forge-media-test.txt")
+	outside := filepath.Join(filepath.Dir(dir), "canary-media-test.txt")
 	if err := os.WriteFile(outside, []byte("safe"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Remove(outside) })
 	store := &LocalMediaStore{dir: dir, baseURL: "https://example.com"}
-	err := store.Delete("../canary-forge-media-test.txt")
+	err := store.Delete("../canary-media-test.txt")
 	if err == nil {
 		t.Fatal("Delete: expected error for path traversal, got nil")
 	}

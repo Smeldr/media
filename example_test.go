@@ -1,21 +1,21 @@
-package forgemedia_test
+package media_test
 
 import (
 	"database/sql"
 
 	"smeldr.dev/core"
-	forgemedia "smeldr.dev/media"
+	"smeldr.dev/media"
 )
 
-// ExampleRegister demonstrates the minimal forge-media wiring pattern.
+// ExampleRegister demonstrates the minimal media wiring pattern.
 //
 // Call Register to create the [Server] and mount all four HTTP routes
 // (upload, serve, list, delete) on the application in a single step.
 //
 // To expose media via MCP, pass the returned *Server to
-// forgemcp.WithModule when constructing the MCP server:
+// mcp.WithModule when constructing the MCP server:
 //
-//	mcpSrv := forgemcp.New(app, forgemcp.WithModule(mediaSrv))
+//	mcpSrv := mcp.New(app, mcp.WithModule(mediaSrv))
 func ExampleRegister() {
 	var db *sql.DB // initialise from your application database setup
 
@@ -25,6 +25,6 @@ func ExampleRegister() {
 		DB:      db,
 	}))
 
-	store := forgemedia.NewLocalMediaStore(app)
-	forgemedia.Register(app, store)
+	store := media.NewLocalMediaStore(app)
+	media.Register(app, store)
 }

@@ -1,4 +1,4 @@
-package forgemedia
+package media
 
 import (
 	"bytes"
