@@ -7,6 +7,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.5.0] — 2026-06-10
+
+### Added
+
+- `Server` now implements `smeldr.StatsExtProvider`: `StatsKey()` returns
+  `"media"`; `ProvideStats()` queries the DB for `file_count`, `total_bytes`,
+  and `by_type` (MIME type → count). Register with
+  `app.RegisterStatsProvider(mediaSrv)` to include media stats in `GET /_stats`
+  (A144).
+
+---
+
 ## [1.4.1] — 2026-06-07
 
 ### Changed
