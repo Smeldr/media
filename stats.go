@@ -15,13 +15,13 @@ func (s *Server) StatsKey() string { return "media" }
 func (s *Server) ProvideStats(ctx context.Context) (map[string]any, error) {
 	var count, totalBytes int64
 	row := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*), COALESCE(SUM(size_bytes), 0) FROM forge_media`)
+		`SELECT COUNT(*), COALESCE(SUM(size_bytes), 0) FROM smeldr_media`)
 	if err := row.Scan(&count, &totalBytes); err != nil {
 		return nil, fmt.Errorf("media: stats: %w", err)
 	}
 
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT mime_type, COUNT(*) FROM forge_media GROUP BY mime_type`)
+		`SELECT mime_type, COUNT(*) FROM smeldr_media GROUP BY mime_type`)
 	if err != nil {
 		return nil, fmt.Errorf("media: stats by type: %w", err)
 	}

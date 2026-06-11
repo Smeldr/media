@@ -48,7 +48,7 @@ const (
 
 // ─── MediaRecord ─────────────────────────────────────────────────────────────
 
-// MediaRecord is a row in the forge_media table. The URL field is computed
+// MediaRecord is a row in the smeldr_media table. The URL field is computed
 // from the application BaseURL at read time and is never stored in the database.
 type MediaRecord struct {
 	// ID is the unique identifier for this media record (UUID v4 hex string).
@@ -371,11 +371,14 @@ func detectMediaType(mime string) MediaType {
 
 // ─── DB operations ────────────────────────────────────────────────────────────
 
-// CreateMediaTable creates the forge_media table if it does not already exist.
+// CreateMediaTable creates the smeldr_media table if it does not already exist.
 // Call this once at application startup.
 func CreateMediaTable(db smeldr.DB) error {
+	if err := migrateLegacyTableNames(context.Background(), db); err != nil {
+		return fmt.Errorf("media: migrate tables: %w", err)
+	}
 	_, err := db.ExecContext(context.Background(), `
-		CREATE TABLE IF NOT EXISTS forge_media (
+		CREATE TABLE IF NOT EXISTS smeldr_media (
 			id                TEXT PRIMARY KEY,
 			filename          TEXT NOT NULL UNIQUE,
 			original_filename TEXT NOT NULL,
@@ -391,10 +394,10 @@ func CreateMediaTable(db smeldr.DB) error {
 	return nil
 }
 
-// insertMedia inserts a MediaRecord into the forge_media table.
+// insertMedia inserts a MediaRecord into the smeldr_media table.
 func insertMedia(db smeldr.DB, r MediaRecord) error {
 	_, err := db.ExecContext(context.Background(),
-		`INSERT INTO forge_media
+		`INSERT INTO smeldr_media
 			(id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.ID, r.Filename, r.OriginalFilename, string(r.MediaType),
@@ -416,11 +419,11 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 	if filter == "" {
 		sqlrows, err = db.QueryContext(context.Background(), `
 			SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
-			FROM forge_media ORDER BY uploaded_at DESC`)
+			FROM smeldr_media ORDER BY uploaded_at DESC`)
 	} else {
 		sqlrows, err = db.QueryContext(context.Background(), `
 			SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
-			FROM forge_media WHERE media_type = ? ORDER BY uploaded_at DESC`, string(filter))
+			FROM smeldr_media WHERE media_type = ? ORDER BY uploaded_at DESC`, string(filter))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("media: list media: %w", err)
@@ -446,7 +449,7 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 	row := db.QueryRowContext(context.Background(), `
 		SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
-		FROM forge_media WHERE id = ?`, id)
+		FROM smeldr_media WHERE id = ?`, id)
 
 	var r MediaRecord
 	var mt string
@@ -462,11 +465,11 @@ func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 	return r, nil
 }
 
-// deleteMediaRecord removes a forge_media row by ID.
+// deleteMediaRecord removes a smeldr_media row by ID.
 // Returns smeldr.ErrNotFound when no row exists.
 func deleteMediaRecord(db smeldr.DB, id string) error {
 	res, err := db.ExecContext(context.Background(),
-		`DELETE FROM forge_media WHERE id = ?`, id)
+		`DELETE FROM smeldr_media WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("media: delete media record: %w", err)
 	}

@@ -7,6 +7,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.0] — 2026-06-11
+
+### Changed
+
+- SQLite table name renamed from `forge_media` to `smeldr_media`.
+  Existing databases are migrated automatically at startup via an idempotent
+  `ALTER TABLE … RENAME TO` pass that runs before `CREATE TABLE IF NOT EXISTS`
+  in `CreateMediaTable`. No action required for fresh installs.
+
+---
+
 ## [1.5.0] — 2026-06-10
 
 ### Added
