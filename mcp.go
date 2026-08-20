@@ -160,17 +160,17 @@ func (s *Server) MCPUpdate(_ smeldr.Context, _ string, _ map[string]any) (any, e
 }
 
 // MCPPublish always returns an error — media files have no lifecycle.
-func (s *Server) MCPPublish(_ smeldr.Context, _, _ string) error {
+func (s *Server) MCPPublish(_ smeldr.Context, _ string) error {
 	return smeldr.ErrBadRequest
 }
 
 // MCPSchedule always returns an error — media files have no lifecycle.
-func (s *Server) MCPSchedule(_ smeldr.Context, _ string, _ time.Time, _ string) error {
+func (s *Server) MCPSchedule(_ smeldr.Context, _ string, _ time.Time) error {
 	return smeldr.ErrBadRequest
 }
 
 // MCPArchive always returns an error — media files have no lifecycle.
-func (s *Server) MCPArchive(_ smeldr.Context, _, _ string) error {
+func (s *Server) MCPArchive(_ smeldr.Context, _ string) error {
 	return smeldr.ErrBadRequest
 }
 
