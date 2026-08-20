@@ -7,6 +7,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.1] — 2026-08-20
+
+### Changed
+- `Server`'s three `smeldr.MCPModule` stub methods (`MCPPublish`/`MCPSchedule`/`MCPArchive`) updated to `smeldr.dev/core`'s widened interface (v1.76.0+, a trailing `reason string` parameter, A284, D53 breaking change). All three remain one-line `ErrBadRequest` — media files have no lifecycle, no behaviour change. Requires `smeldr.dev/core` v1.76.0+.
+
+---
+
 ## [1.6.0] — 2026-06-11
 
 ### Changed

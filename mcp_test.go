@@ -248,21 +248,21 @@ func TestMCPUpdate_notSupported(t *testing.T) {
 
 func TestMCPPublish_notSupported(t *testing.T) {
 	s := newMCPServer(t)
-	if err := s.MCPPublish(editorCtx(t), "any"); err == nil {
+	if err := s.MCPPublish(editorCtx(t), "any", ""); err == nil {
 		t.Fatal("MCPPublish should return an error")
 	}
 }
 
 func TestMCPSchedule_notSupported(t *testing.T) {
 	s := newMCPServer(t)
-	if err := s.MCPSchedule(editorCtx(t), "any", time.Now()); err == nil {
+	if err := s.MCPSchedule(editorCtx(t), "any", time.Now(), ""); err == nil {
 		t.Fatal("MCPSchedule should return an error")
 	}
 }
 
 func TestMCPArchive_notSupported(t *testing.T) {
 	s := newMCPServer(t)
-	if err := s.MCPArchive(editorCtx(t), "any"); err == nil {
+	if err := s.MCPArchive(editorCtx(t), "any", ""); err == nil {
 		t.Fatal("MCPArchive should return an error")
 	}
 }
