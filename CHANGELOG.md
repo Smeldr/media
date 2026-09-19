@@ -7,6 +7,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.2] — 2026-09-19
+
+### Changed
+
+Moved the package doc comment out of `media.go` into a dedicated `doc.go` — the file pkg.go.dev actually looks for. Mechanical relocation only, content unchanged (already accurate). No behaviour change.
+
+---
+
 ## [1.6.1] — 2026-08-20
 
 ### Changed
