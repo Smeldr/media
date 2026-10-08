@@ -7,6 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.7.0] - 2026-10-08
+
+### Added
+
+- **Postgres support** (A449). smeldr.dev/media now runs on an application database on Postgres (smeldr.dev/core/pgx), not only SQLite: every query uses numbered placeholders (`$1`), `uploaded_at` is `TIMESTAMP` (Postgres has no `DATETIME`), and the legacy `forge_media` rename uses core's `smeldr.RenameLegacyTables`, which works on both (it used to return early on anything but SQLite). Integration tests against postgres:16 run in CI.
+
+### Changed
+
+- `size_bytes` is `BIGINT` in a new table, so a file of 2 GiB or more fits on Postgres. Existing SQLite tables keep their declaration; SQLite stores 64-bit integers either way.
+- A guard test fails the build on SQLite-only SQL (`?` placeholders, `sqlite_master`, `DATETIME`, and the rest of core's list).
+
+### Upgrading
+
+- Requires smeldr.dev/core v1.136.0 (`RenameLegacyTables`). The `github.com/jackc/pgx/v5` require is for the integration tests only; the module's own code imports no driver.
+
+---
+
 ## [1.6.3] — 2026-09-19
 
 ### Added

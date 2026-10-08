@@ -370,8 +370,8 @@ func CreateMediaTable(db smeldr.DB) error {
 			media_type        TEXT NOT NULL,
 			mime_type         TEXT NOT NULL,
 			description       TEXT NOT NULL DEFAULT '',
-			size_bytes        INTEGER NOT NULL DEFAULT 0,
-			uploaded_at       DATETIME NOT NULL
+			size_bytes        BIGINT NOT NULL DEFAULT 0,
+			uploaded_at       TIMESTAMP NOT NULL
 		)`)
 	if err != nil {
 		return fmt.Errorf("media: create table: %w", err)
@@ -384,7 +384,7 @@ func insertMedia(db smeldr.DB, r MediaRecord) error {
 	_, err := db.ExecContext(context.Background(),
 		`INSERT INTO smeldr_media
 			(id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		r.ID, r.Filename, r.OriginalFilename, string(r.MediaType),
 		r.MIMEType, r.Description, r.SizeBytes, r.UploadedAt.UTC(),
 	)
@@ -408,7 +408,7 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 	} else {
 		sqlrows, err = db.QueryContext(context.Background(), `
 			SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
-			FROM smeldr_media WHERE media_type = ? ORDER BY uploaded_at DESC`, string(filter))
+			FROM smeldr_media WHERE media_type = $1 ORDER BY uploaded_at DESC`, string(filter))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("media: list media: %w", err)
@@ -434,7 +434,7 @@ func listMedia(db smeldr.DB, filter MediaType) ([]MediaRecord, error) {
 func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 	row := db.QueryRowContext(context.Background(), `
 		SELECT id, filename, original_filename, media_type, mime_type, description, size_bytes, uploaded_at
-		FROM smeldr_media WHERE id = ?`, id)
+		FROM smeldr_media WHERE id = $1`, id)
 
 	var r MediaRecord
 	var mt string
@@ -454,7 +454,7 @@ func getMediaByID(db smeldr.DB, id string) (MediaRecord, error) {
 // Returns smeldr.ErrNotFound when no row exists.
 func deleteMediaRecord(db smeldr.DB, id string) error {
 	res, err := db.ExecContext(context.Background(),
-		`DELETE FROM smeldr_media WHERE id = ?`, id)
+		`DELETE FROM smeldr_media WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("media: delete media record: %w", err)
 	}
