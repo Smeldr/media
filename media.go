@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,6 +37,13 @@ const (
 
 // MediaRecord is a row in the smeldr_media table. The URL field is computed
 // from the application BaseURL at read time and is never stored in the database.
+//
+// In JSON (GET /media and the File MCP tools) each field is written under its
+// snake_case name: id, filename, original_filename, media_type, mime_type,
+// description, size_bytes, uploaded_at and url, the names the upload response
+// uses. Read those. Each field is also written under its Go name (ID,
+// MediaType, ...), as before; those keys are deprecated and will be removed
+// three months after the release that added the snake_case ones (D97, T1153).
 type MediaRecord struct {
 	// ID is the unique identifier for this media record (UUID v4 hex string).
 	ID string
@@ -57,6 +65,44 @@ type MediaRecord struct {
 	// URL is computed at read time from the application BaseURL.
 	// It is not stored in the database.
 	URL string
+}
+
+// mediaRecordJSON is MediaRecord's wire form: every field under its
+// snake_case name and, deprecated, its Go name (T1153).
+type mediaRecordJSON struct {
+	ID               string    `json:"id"`
+	Filename         string    `json:"filename"`
+	OriginalFilename string    `json:"original_filename"`
+	MediaType        MediaType `json:"media_type"`
+	MIMEType         string    `json:"mime_type"`
+	Description      string    `json:"description"`
+	SizeBytes        int64     `json:"size_bytes"`
+	UploadedAt       time.Time `json:"uploaded_at"`
+	URL              string    `json:"url"`
+
+	DeprecatedID               string    `json:"ID"`
+	DeprecatedFilename         string    `json:"Filename"`
+	DeprecatedOriginalFilename string    `json:"OriginalFilename"`
+	DeprecatedMediaType        MediaType `json:"MediaType"`
+	DeprecatedMIMEType         string    `json:"MIMEType"`
+	DeprecatedDescription      string    `json:"Description"`
+	DeprecatedSizeBytes        int64     `json:"SizeBytes"`
+	DeprecatedUploadedAt       time.Time `json:"UploadedAt"`
+	DeprecatedURL              string    `json:"URL"`
+}
+
+// MarshalJSON writes r with the snake_case keys and the deprecated Go-name
+// keys, each pair with the same value; see [MediaRecord].
+func (r MediaRecord) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mediaRecordJSON{
+		ID: r.ID, Filename: r.Filename, OriginalFilename: r.OriginalFilename,
+		MediaType: r.MediaType, MIMEType: r.MIMEType, Description: r.Description,
+		SizeBytes: r.SizeBytes, UploadedAt: r.UploadedAt, URL: r.URL,
+
+		DeprecatedID: r.ID, DeprecatedFilename: r.Filename, DeprecatedOriginalFilename: r.OriginalFilename,
+		DeprecatedMediaType: r.MediaType, DeprecatedMIMEType: r.MIMEType, DeprecatedDescription: r.Description,
+		DeprecatedSizeBytes: r.SizeBytes, DeprecatedUploadedAt: r.UploadedAt, DeprecatedURL: r.URL,
+	})
 }
 
 // ─── MediaStore interface ─────────────────────────────────────────────────────

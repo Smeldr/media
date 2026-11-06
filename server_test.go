@@ -577,3 +577,60 @@ func TestUpload_UnsupportedExtension(t *testing.T) {
 		}
 	}
 }
+
+// TestHandleList_BothKeyForms: each GET /media entry has every field under
+// its snake_case name and, deprecated, its Go name, with equal values, and
+// the snake_case keys match the upload response's (D97, T1153).
+func TestHandleList_BothKeyForms(t *testing.T) {
+	s, _ := newTestServer(t)
+
+	body, ct := buildUpload(t, "photo.jpg", jpegMagic, "a test image")
+	req := httptest.NewRequest(http.MethodPost, "/media", body)
+	req.Header.Set("Content-Type", ct)
+	req.Header.Set("Authorization", authorToken(t))
+	w := httptest.NewRecorder()
+	s.handleUpload(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("upload: %d %s", w.Code, w.Body.String())
+	}
+	var up map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &up); err != nil {
+		t.Fatal(err)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/media", nil)
+	req.Header.Set("Authorization", editorToken(t))
+	w = httptest.NewRecorder()
+	s.handleList(w, req)
+	var list []map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil || len(list) != 1 {
+		t.Fatalf("list = %s, %v", w.Body.String(), err)
+	}
+	e := list[0]
+	pairs := map[string]string{
+		"id": "ID", "filename": "Filename", "original_filename": "OriginalFilename",
+		"media_type": "MediaType", "mime_type": "MIMEType", "description": "Description",
+		"size_bytes": "SizeBytes", "uploaded_at": "UploadedAt", "url": "URL",
+	}
+	if len(e) != 2*len(pairs) {
+		t.Errorf("entry has %d keys, want %d: %v", len(e), 2*len(pairs), e)
+	}
+	for snake, goName := range pairs {
+		v, ok := e[snake]
+		if !ok {
+			t.Errorf("no %q key", snake)
+			continue
+		}
+		if e[goName] != v {
+			t.Errorf("%s = %v, %s = %v; want equal", snake, v, goName, e[goName])
+		}
+	}
+	for _, k := range []string{"id", "url", "media_type", "mime_type"} {
+		if up[k] != e[k] {
+			t.Errorf("%s: upload %v, list %v", k, up[k], e[k])
+		}
+	}
+	if e["original_filename"] != "photo.jpg" || e["description"] != "a test image" {
+		t.Errorf("entry = %v", e)
+	}
+}

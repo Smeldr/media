@@ -9,6 +9,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Media records are written with snake_case JSON keys (T1153).** `GET /media` and the File MCP tools (`list_files`, `get_file`) now write each media record's fields as `id`, `filename`, `original_filename`, `media_type`, `mime_type`, `description`, `size_bytes`, `uploaded_at` and `url`. These match the keys the upload response (`POST /media`) already uses, so the module answers in one casing, like the rest of Smeldr's HTTP API. The Go struct and its fields are unchanged; a `MarshalJSON` method on `MediaRecord` writes both key forms.
+
+### Deprecated
+
+- **The Go-field-name JSON keys on media records are deprecated (T1153).** The old keys (`ID`, `Filename`, `OriginalFilename`, `MediaType`, `MIMEType`, `Description`, `SizeBytes`, `UploadedAt`, `URL`) are still written with the same values during a deprecation window. They will be removed on @@REMOVAL_DATE@@, three months after this release (D97). Readers of the list or tool JSON should switch to the snake_case keys. smeldr-cli's `media list` reads both forms from cli v0.37.2.
+
 ---
 
 ## [1.7.1] - 2026-11-06

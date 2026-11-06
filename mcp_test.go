@@ -3,6 +3,7 @@ package media
 import (
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -294,5 +295,46 @@ func TestMCPCreate_UnsupportedExtension(t *testing.T) {
 	var ve *smeldr.ValidationError
 	if !errors.As(err, &ve) || ve.HTTPStatus() != 422 || !strings.HasPrefix(err.Error(), "validation failed: file: unsupported file type") {
 		t.Fatalf("err = %v, want a ValidationError on file", err)
+	}
+}
+
+// TestMCPGet_BothKeyForms: a File MCP result marshals with the snake_case
+// keys and the deprecated Go-name keys, and decodes back to the same record
+// (T1153).
+func TestMCPGet_BothKeyForms(t *testing.T) {
+	s := newMCPServer(t)
+	want := MediaRecord{
+		ID: "g2", Filename: "g.jpg", OriginalFilename: "orig.jpg",
+		MediaType: MediaTypeImage, MIMEType: "image/jpeg", Description: "alt",
+		SizeBytes: 7, UploadedAt: time.Date(2026, 11, 6, 9, 0, 0, 0, time.UTC),
+	}
+	if err := insertMedia(s.db, want); err != nil {
+		t.Fatal(err)
+	}
+	item, err := s.MCPGet(editorCtx(t), "g2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(item)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys map[string]any
+	if err := json.Unmarshal(raw, &keys); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"id", "original_filename", "media_type", "size_bytes", "uploaded_at", "ID", "OriginalFilename", "UploadedAt"} {
+		if _, ok := keys[k]; !ok {
+			t.Errorf("no %q in %s", k, raw)
+		}
+	}
+	var back MediaRecord
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	got := item.(MediaRecord)
+	if back.ID != got.ID || back.OriginalFilename != got.OriginalFilename || back.SizeBytes != got.SizeBytes ||
+		!back.UploadedAt.Equal(got.UploadedAt) || back.URL != got.URL || back.MediaType != got.MediaType {
+		t.Errorf("round trip = %+v, want %+v", back, got)
 	}
 }
