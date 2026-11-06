@@ -3,6 +3,8 @@ package media
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -280,3 +282,17 @@ func TestGetSlug(t *testing.T) {
 
 var _ smeldr.MCPModule = (*Server)(nil)
 var _ = (*sql.DB)(nil)
+
+// TestMCPCreate_UnsupportedExtension: over MCP too, an unsupported type is a
+// validation error on file.
+func TestMCPCreate_UnsupportedExtension(t *testing.T) {
+	s := newMCPServer(t)
+	_, err := s.MCPCreate(authorCtx(t), map[string]any{
+		"filename": "note.txt",
+		"data":     base64.StdEncoding.EncodeToString([]byte("hello")),
+	})
+	var ve *smeldr.ValidationError
+	if !errors.As(err, &ve) || ve.HTTPStatus() != 422 || !strings.HasPrefix(err.Error(), "validation failed: file: unsupported file type") {
+		t.Fatalf("err = %v, want a ValidationError on file", err)
+	}
+}

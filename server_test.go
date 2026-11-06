@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -490,5 +491,89 @@ func TestHandleUpload_bearerToken_pdfAllowed(t *testing.T) {
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("status: want 201, got %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// serveStored writes name with content into s's directory and serves it.
+func serveStored(t *testing.T, s *Server, name string, content []byte) *httptest.ResponseRecorder {
+	t.Helper()
+	if err := os.WriteFile(s.dir+"/"+name, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/media/"+name, nil)
+	req.SetPathValue("filename", name)
+	w := httptest.NewRecorder()
+	s.handleServe(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("serve %s: status %d", name, w.Code)
+	}
+	return w
+}
+
+// TestServe_SVGIsSandboxed: an SVG holding script is served with nosniff and
+// the sandbox CSP, so opening its URL runs no script (T1148).
+func TestServe_SVGIsSandboxed(t *testing.T) {
+	s, _ := newTestServer(t)
+	w := serveStored(t, s, "logo.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`))
+	if got := w.Header().Get("Content-Type"); got != "image/svg+xml" {
+		t.Errorf("Content-Type = %q", got)
+	}
+	if got := w.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q", got)
+	}
+	if got := w.Header().Get("Content-Security-Policy"); got != sandboxCSP || !strings.Contains(got, "sandbox") {
+		t.Errorf("Content-Security-Policy = %q", got)
+	}
+	if got := w.Header().Get("Content-Disposition"); got != "" {
+		t.Errorf("Content-Disposition = %q, want none", got)
+	}
+}
+
+// TestServe_HeadersOnEveryFile: a PNG gets nosniff and no CSP, with its body
+// unchanged.
+func TestServe_HeadersOnEveryFile(t *testing.T) {
+	s, _ := newTestServer(t)
+	w := serveStored(t, s, "photo.png", pngMagic)
+	if got := w.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q", got)
+	}
+	if got := w.Header().Get("Content-Security-Policy"); got != "" {
+		t.Errorf("Content-Security-Policy = %q, want none", got)
+	}
+	if !bytes.Equal(w.Body.Bytes(), pngMagic) {
+		t.Error("body changed")
+	}
+}
+
+// TestServe_PDFNoSandbox: a PDF gets nosniff and no CSP, so the browser's
+// viewer can show it.
+func TestServe_PDFNoSandbox(t *testing.T) {
+	s, _ := newTestServer(t)
+	w := serveStored(t, s, "report.pdf", []byte("%PDF-1.4\n"))
+	if got := w.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q", got)
+	}
+	if got := w.Header().Get("Content-Security-Policy"); got != "" {
+		t.Errorf("Content-Security-Policy = %q, want none", got)
+	}
+}
+
+// TestUpload_UnsupportedExtension: an unsupported type is a 422 on file that
+// names the extension and the accepted ones, not a 500.
+func TestUpload_UnsupportedExtension(t *testing.T) {
+	s, _ := newTestServer(t)
+	body, ct := buildUpload(t, "note.txt", []byte("hello"), "a note")
+	req := httptest.NewRequest(http.MethodPost, "/media", body)
+	req.Header.Set("Content-Type", ct)
+	req.Header.Set("Authorization", authorToken(t))
+	w := httptest.NewRecorder()
+	s.handleUpload(w, req)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422: %s", w.Code, w.Body.String())
+	}
+	for _, want := range []string{`"file"`, `.txt`, `.jpg`, `.svg`} {
+		if !strings.Contains(w.Body.String(), want) {
+			t.Errorf("body %s does not contain %s", w.Body.String(), want)
+		}
 	}
 }

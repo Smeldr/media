@@ -7,6 +7,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Security
+
+- **Uploaded media is served with headers that stop stored script (T1148).** `GET /media/{filename}` served uploaded files with no protective headers. An SVG containing script, uploaded by any token with the Author role, ran that script on the site's own origin when its URL was opened. This was a stored cross-site scripting hole. Every media file now gets `X-Content-Type-Options: nosniff`. SVG files also get `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox`, so an opened SVG runs no script. SVG uploads are still accepted, and an SVG embedded with `<img>` still renders. PDFs get no CSP, so the browser's PDF viewer still works. The headers are set when a file is served, so files already stored are covered too. Upgrade every deployment that serves media.
+
+### Fixed
+
+- **An unsupported upload extension returns a validation error (T1148).** An upload with an unsupported file extension, such as `note.txt`, answered 500 `internal_error`. It now answers 422 with a validation error on the `file` field. The error names the extension and lists the accepted ones. The MCP create tool returns the same validation error.
+
+---
+
 ## [1.7.0] - 2026-10-08
 
 ### Added

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -198,6 +199,17 @@ var extToMIME = map[string]string{
 	".pdf":  "application/pdf",
 }
 
+// acceptedExtensions lists the keys of extToMIME, sorted, for the
+// unsupported-type error.
+func acceptedExtensions() string {
+	exts := make([]string, 0, len(extToMIME))
+	for ext := range extToMIME {
+		exts = append(exts, ext)
+	}
+	sort.Strings(exts)
+	return strings.Join(exts, ", ")
+}
+
 // extToLabel maps extensions to human-readable type names for error messages.
 var extToLabel = map[string]string{
 	".jpg":  "JPEG",
@@ -242,7 +254,7 @@ func detectMIME(data []byte, ext string) (string, error) {
 	ext = strings.ToLower(ext)
 	expected, ok := extToMIME[ext]
 	if !ok {
-		return "", fmt.Errorf("media: unsupported file extension %q", ext)
+		return "", smeldr.Err("file", fmt.Sprintf("unsupported file type %q; accepted: %s", ext, acceptedExtensions()))
 	}
 
 	actual := sniffMIME(data)

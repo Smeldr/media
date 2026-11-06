@@ -221,8 +221,24 @@ func (s *Server) handleServe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// Served inert (T1148): no file may be sniffed into another type, and an
+	// SVG opened from its URL runs no script on the site's origin.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if scriptCapable[strings.ToLower(filepath.Ext(filename))] {
+		w.Header().Set("Content-Security-Policy", sandboxCSP)
+	}
 	http.ServeFile(w, r, filepath.Join(s.dir, filename))
 }
+
+// sandboxCSP is the policy a stored file that can carry script is served
+// with: nothing loads, and the document is sandboxed, so its script does not
+// run. An <img> that embeds the file is not affected.
+const sandboxCSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
+
+// scriptCapable are the stored extensions whose documents can run script when
+// opened from their URL. Only SVG: images, video and audio cannot, and PDF
+// script runs in the browser's viewer, which a sandbox would break.
+var scriptCapable = map[string]bool{".svg": true}
 
 // handleList returns a JSON array of all media records. Supports optional
 // ?type=image|video|audio|document|other filtering. Requires Editor role.

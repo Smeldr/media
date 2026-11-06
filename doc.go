@@ -12,7 +12,10 @@
 // Uploaded files are validated by magic-byte MIME detection, stored in the
 // directory configured by [smeldr.Config.MediaPath] (default ./media), and
 // served at GET /media/{filename}. All write operations require at least the
-// Author role.
+// Author role. Every file is served with X-Content-Type-Options: nosniff, and
+// an SVG also with a sandboxing Content-Security-Policy, so an uploaded file
+// cannot run script on the site's origin when its URL is opened. An <img>
+// that embeds it is not affected.
 //
 // # Database
 //
