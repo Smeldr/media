@@ -17,6 +17,11 @@
 // cannot run script on the site's origin when its URL is opened. An <img>
 // that embeds it is not affected.
 //
+// GET /media lists the records (Editor role), each under its snake_case keys
+// and, until they are removed, its deprecated Go-name keys; GET
+// /media?keys=snake_case writes the snake_case keys only, for a JSON reader
+// that cannot take two keys that differ only in case. See [MediaRecord].
+//
 // # Database
 //
 // Media records live in the application's own database ([smeldr.Config.DB]),

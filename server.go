@@ -241,12 +241,20 @@ const sandboxCSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:
 var scriptCapable = map[string]bool{".svg": true}
 
 // handleList returns a JSON array of all media records. Supports optional
-// ?type=image|video|audio|document|other filtering. Requires Editor role.
+// ?type=image|video|audio|document|other filtering, and ?keys=snake_case,
+// which writes each record under its snake_case keys only (core T1303; see
+// [MediaRecord]). Any other value of keys is a 422 on keys. Requires Editor
+// role.
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	cfg := s.app.Config()
 	user, ok := smeldr.VerifyBearerToken(r, cfg.Secret, cfg.TokenStore)
 	if !ok || !user.HasRole(smeldr.Editor) {
 		smeldr.WriteError(w, r, smeldr.ErrUnauth)
+		return
+	}
+	keys := r.URL.Query().Get("keys")
+	if keys != "" && keys != "snake_case" {
+		smeldr.WriteError(w, r, smeldr.Err("keys", `must be "snake_case" or absent`))
 		return
 	}
 
@@ -263,6 +271,14 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 		records[i].URL = baseURL + "/media/" + records[i].Filename
 	}
 
+	if keys == "snake_case" {
+		snake := make([]mediaRecordSnake, len(records))
+		for i, rec := range records {
+			snake[i] = rec.snakeOnly()
+		}
+		writeJSON(w, http.StatusOK, snake)
+		return
+	}
 	if records == nil {
 		records = []MediaRecord{}
 	}

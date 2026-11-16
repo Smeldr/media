@@ -44,6 +44,11 @@ const (
 // uses. Read those. Each field is also written under its Go name (ID,
 // MediaType, ...), as before; those keys are deprecated and will be removed
 // three months after the release that added the snake_case ones (D97, T1153).
+// Four of them differ from their snake_case key in case only, which some JSON
+// readers (Windows PowerShell 5.1's ConvertFrom-Json) cannot take: such a
+// reader asks for GET /media?keys=snake_case, which writes the snake_case keys
+// only. After the old keys are removed the parameter is still accepted and
+// changes nothing.
 type MediaRecord struct {
 	// ID is the unique identifier for this media record (UUID v4 hex string).
 	ID string
@@ -67,9 +72,10 @@ type MediaRecord struct {
 	URL string
 }
 
-// mediaRecordJSON is MediaRecord's wire form: every field under its
-// snake_case name and, deprecated, its Go name (T1153).
-type mediaRecordJSON struct {
+// mediaRecordSnake is a MediaRecord under its snake_case keys only: the form
+// GET /media?keys=snake_case writes (core T1303), and the first half of
+// mediaRecordJSON, so the two cannot drift.
+type mediaRecordSnake struct {
 	ID               string    `json:"id"`
 	Filename         string    `json:"filename"`
 	OriginalFilename string    `json:"original_filename"`
@@ -79,8 +85,19 @@ type mediaRecordJSON struct {
 	SizeBytes        int64     `json:"size_bytes"`
 	UploadedAt       time.Time `json:"uploaded_at"`
 	URL              string    `json:"url"`
+}
 
-	DeprecatedID               string    `json:"ID"`
+// snakeOnly returns r under its snake_case keys only.
+func (r MediaRecord) snakeOnly() mediaRecordSnake {
+	return mediaRecordSnake(r)
+}
+
+// mediaRecordJSON is MediaRecord's wire form: every field under its
+// snake_case name and, deprecated, its Go name (T1153).
+type mediaRecordJSON struct {
+	mediaRecordSnake
+
+	DeprecatedID              string    `json:"ID"`
 	DeprecatedFilename         string    `json:"Filename"`
 	DeprecatedOriginalFilename string    `json:"OriginalFilename"`
 	DeprecatedMediaType        MediaType `json:"MediaType"`
@@ -95,9 +112,7 @@ type mediaRecordJSON struct {
 // keys, each pair with the same value; see [MediaRecord].
 func (r MediaRecord) MarshalJSON() ([]byte, error) {
 	return json.Marshal(mediaRecordJSON{
-		ID: r.ID, Filename: r.Filename, OriginalFilename: r.OriginalFilename,
-		MediaType: r.MediaType, MIMEType: r.MIMEType, Description: r.Description,
-		SizeBytes: r.SizeBytes, UploadedAt: r.UploadedAt, URL: r.URL,
+		mediaRecordSnake: r.snakeOnly(),
 
 		DeprecatedID: r.ID, DeprecatedFilename: r.Filename, DeprecatedOriginalFilename: r.OriginalFilename,
 		DeprecatedMediaType: r.MediaType, DeprecatedMIMEType: r.MIMEType, DeprecatedDescription: r.Description,

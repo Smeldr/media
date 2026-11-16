@@ -9,6 +9,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`GET /media?keys=snake_case` answers with the snake_case keys only (core T1303).** Until the deprecated Go-name keys are removed (2027-02-06), each record carries both forms, and four pairs differ in case only (`id`/`ID`, `filename`/`Filename`, `description`/`Description`, `url`/`URL`), which Windows PowerShell 5.1's `ConvertFrom-Json` cannot read. With `keys=snake_case` each record has its nine snake_case keys and nothing else; `type` still filters. Without the parameter, or with it empty, the answer is unchanged; any other value is a 422 on `keys`. After the old keys are removed the parameter is still accepted and changes nothing. The upload's answer has only snake_case keys already, and no other route writes a media record. The File MCP tools are unchanged.
+
 ---
 
 ## [1.7.3] - 2026-11-13

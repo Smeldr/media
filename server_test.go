@@ -634,3 +634,104 @@ func TestHandleList_BothKeyForms(t *testing.T) {
 		t.Errorf("entry = %v", e)
 	}
 }
+
+// GET /media?keys=snake_case writes each record under its nine snake_case
+// keys only, with no two keys equal but for case (core T1303); without the
+// parameter, or with it empty, the answer is unchanged; any other value is a
+// 422 on keys before the database is read; the type filter still applies.
+func TestHandleList_KeysSnakeCase(t *testing.T) {
+	s, _ := newTestServer(t)
+	for _, f := range []struct{ name, desc string }{{"photo.jpg", "a test image"}, {"doc.pdf", ""}} {
+		data := jpegMagic
+		if strings.HasSuffix(f.name, ".pdf") {
+			data = []byte("%PDF-1.4 test")
+		}
+		body, ct := buildUpload(t, f.name, data, f.desc)
+		req := httptest.NewRequest(http.MethodPost, "/media", body)
+		req.Header.Set("Content-Type", ct)
+		req.Header.Set("Authorization", authorToken(t))
+		w := httptest.NewRecorder()
+		s.handleUpload(w, req)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("upload %s: %d %s", f.name, w.Code, w.Body.String())
+		}
+	}
+	list := func(query string) (int, string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/media"+query, nil)
+		req.Header.Set("Authorization", editorToken(t))
+		w := httptest.NewRecorder()
+		s.handleList(w, req)
+		return w.Code, w.Body.String()
+	}
+
+	_, plain := list("")
+	if _, empty := list("?keys="); empty != plain {
+		t.Errorf("?keys= differs from no parameter:\n%s\n%s", empty, plain)
+	}
+	var both []map[string]any
+	if err := json.Unmarshal([]byte(plain), &both); err != nil || len(both) != 2 {
+		t.Fatalf("plain list = %s, %v", plain, err)
+	}
+
+	code, body := list("?keys=snake_case")
+	var snake []map[string]any
+	if err := json.Unmarshal([]byte(body), &snake); code != http.StatusOK || err != nil || len(snake) != 2 {
+		t.Fatalf("snake list = %d %s, %v", code, body, err)
+	}
+	want := []string{"id", "filename", "original_filename", "media_type", "mime_type", "description", "size_bytes", "uploaded_at", "url"}
+	for i, e := range snake {
+		if len(e) != len(want) {
+			t.Errorf("row %d has %d keys, want %d: %v", i, len(e), len(want), e)
+		}
+		for _, k := range want {
+			if _, ok := e[k]; !ok || e[k] != both[i][k] {
+				t.Errorf("row %d %s = %v, want %v", i, k, e[k], both[i][k])
+			}
+		}
+		seen := map[string]string{}
+		for k := range e {
+			if other, ok := seen[strings.ToLower(k)]; ok {
+				t.Errorf("row %d: keys %q and %q differ only in case", i, k, other)
+			}
+			seen[strings.ToLower(k)] = k
+		}
+	}
+
+	code, body = list("?keys=snake_case&type=image")
+	if err := json.Unmarshal([]byte(body), &snake); code != http.StatusOK || err != nil || len(snake) != 1 || snake[0]["media_type"] != "image" {
+		t.Errorf("snake list of images = %d %s, %v", code, body, err)
+	}
+
+	// A bad value is refused before the database is read.
+	if _, err := s.db.ExecContext(t.Context(), `DROP TABLE smeldr_media`); err != nil {
+		t.Fatal(err)
+	}
+	code, body = list("?keys=camel")
+	if code != http.StatusUnprocessableEntity || !strings.Contains(body, `"keys"`) || !strings.Contains(body, "snake_case") {
+		t.Errorf("?keys=camel = %d %s; want 422 on keys", code, body)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/media?keys=snake_case", nil)
+	w := httptest.NewRecorder()
+	s.handleList(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("no token = %d; want 401", w.Code)
+	}
+}
+
+// MarshalJSON writes the same bytes as before the snake_case struct was split
+// out (core T1303): the nine snake_case keys, then the nine Go-name keys.
+func TestMediaRecord_MarshalJSONUnchanged(t *testing.T) {
+	r := MediaRecord{ID: "i1", Filename: "f.jpg", OriginalFilename: "o.jpg", MediaType: MediaTypeImage, MIMEType: "image/jpeg",
+		Description: "d", SizeBytes: 3, UploadedAt: time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC), URL: "http://x/media/f.jpg"}
+	got, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = `{"id":"i1","filename":"f.jpg","original_filename":"o.jpg","media_type":"image","mime_type":"image/jpeg","description":"d","size_bytes":3,"uploaded_at":"2026-11-16T12:00:00Z","url":"http://x/media/f.jpg",` +
+		`"ID":"i1","Filename":"f.jpg","OriginalFilename":"o.jpg","MediaType":"image","MIMEType":"image/jpeg","Description":"d","SizeBytes":3,"UploadedAt":"2026-11-16T12:00:00Z","URL":"http://x/media/f.jpg"}`
+	if string(got) != want {
+		t.Errorf("MarshalJSON =\n%s\nwant\n%s", got, want)
+	}
+}
