@@ -97,7 +97,7 @@ func (r MediaRecord) snakeOnly() mediaRecordSnake {
 type mediaRecordJSON struct {
 	mediaRecordSnake
 
-	DeprecatedID              string    `json:"ID"`
+	DeprecatedID               string    `json:"ID"`
 	DeprecatedFilename         string    `json:"Filename"`
 	DeprecatedOriginalFilename string    `json:"OriginalFilename"`
 	DeprecatedMediaType        MediaType `json:"MediaType"`
